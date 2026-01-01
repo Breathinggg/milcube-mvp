@@ -1,0 +1,56 @@
+# Video files (too large for git)
+*.mp4
+*.avi
+*.mkv
+*.mov
+*.wmv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs and outputs
+runs/
+*.log
+*.csv
+*.jsonl
+matching_log_*.json
+
+# Models (will be downloaded)
+models/*.onnx
+models/*.pt
+models/*.pth
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+backup/
+*_backup*.py
+*.bak
+
+# Temp
+*.tmp
+temp/

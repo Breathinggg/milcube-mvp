@@ -1,0 +1,13 @@
+# Core
+numpy>=1.21.0
+opencv-python>=4.5.0
+
+# Deep Learning Inference
+onnxruntime>=1.12.0
+# onnxruntime-gpu>=1.12.0  # Uncomment for CUDA support
+
+# Web Server
+flask>=2.0.0
+
+# Utilities
+requests>=2.25.0
