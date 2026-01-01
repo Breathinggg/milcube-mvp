@@ -4,6 +4,8 @@ Real-time multi-camera crowd monitoring system with edge-device simulation.
 
 > Simulates Jetson Nano inference constraints on PC for algorithm validation before deployment.
 
+![Demo](sample.gif)
+
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
 ![ONNX Runtime](https://img.shields.io/badge/ONNX-Runtime-orange.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)

@@ -11,6 +11,7 @@ class PostureEngine:
 
         # track_id -> state machine data
         self.state = {}  # id: {label, cand, cand_count, fall_until_ms}
+        self.last_labels = {}  # 缓存上次的 labels，避免闪烁
 
     def update(self, tracks, frame_shape, now_ms):
         cfg = self.cfg
@@ -18,7 +19,7 @@ class PostureEngine:
 
         # 限频更新（省算力+更稳）
         if now_ms - self.last_update_ms < int(1000.0 / max(0.1, cfg.posture_update_hz)):
-            return {}, []
+            return self.last_labels, []  # 返回缓存的 labels，避免闪烁
         self.last_update_ms = now_ms
 
         labels = {}
@@ -82,7 +83,9 @@ class PostureEngine:
         dead = [tid for tid in self.state.keys() if tid not in alive_ids]
         for tid in dead:
             self.state.pop(tid, None)
+            self.last_labels.pop(tid, None)
 
+        self.last_labels = labels  # 缓存本次结果
         return labels, events
 
     def _classify(self, cfg, h_ratio, aspect, speed):
