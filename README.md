@@ -18,7 +18,8 @@ Real-time multi-camera crowd monitoring system with edge-device simulation.
 - **Edge simulation** - Token Bucket scheduler enforces Jetson-like inference budget (8 Hz)
 - **Dual FOV** - Wide (overview) + Narrow (ROI zoom) software-defined field of view
 - **Real-time tracking** - IOU-based multi-object tracking with trajectory visualization
-- **Event detection** - Loitering, fall detection, posture classification (stand/sit/fall)
+- **Posture classification** - Speed-based WALK/STAND detection with state machine
+- **Event detection** - Loitering detection with configurable thresholds
 - **Cross-camera Re-ID** - OSNet feature matching for person re-identification
 - **Web dashboard** - MJPEG streaming + live metrics + heatmap overlay
 
@@ -60,8 +61,8 @@ Per-Camera Pipeline:
                   ▼                              ▼
            ┌───────────┐                  ┌────────────┐
            │ Scheduler │                  │ Posture    │
-           │ (Token    │                  │ Classifier │
-           │  Bucket)  │                  └────────────┘
+           │ (Token    │                  │ (WALK/     │
+           │  Bucket)  │                  │  STAND)    │
            └───────────┘                        │
                   │                              │
                   └──────────────┬───────────────┘
@@ -101,7 +102,11 @@ python main.py --src your_video.mp4 --port 5000 --name cam1 --gpu
 ### 4. Run multi-camera with dashboard
 
 ```bash
-run_all.bat
+# Normal dataset (6p-c1.avi, 6p-c2.avi)
+run_normal.bat
+
+# Fall dataset (fall1.mp4, fall2.mp4)
+run_fall.bat
 ```
 
 Then open: http://127.0.0.1:9000
@@ -245,6 +250,20 @@ Edit `modules/viz.py`:
 - `draw_tracks()` - Bounding boxes and trajectories
 - `draw_grid_overlay()` - Heatmap
 - `draw_kpi_cards_on_panel()` - Dashboard cards
+
+---
+
+## Limitations & Future Work
+
+### Current Limitations
+
+- **Fall detection**: YOLOv8n cannot reliably detect people in lying positions (trained primarily on upright humans). Posture is limited to WALK/STAND based on movement speed.
+
+### Future Improvements
+
+- **YOLOv8-pose integration**: Use skeleton keypoints for accurate fall detection
+- **Action recognition**: Temporal analysis for complex activity detection
+- **Edge deployment**: Actual Jetson Nano/Xavier testing
 
 ---
 

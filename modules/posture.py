@@ -1,106 +1,75 @@
-import time
-
 class PostureEngine:
     """
-    无骨架姿态：用 bbox 形状 + 速度做 SIT/STAND/FALL?
-    带 debounce 和 FALL hold。
+    状态机姿态检测：WALK / STAND
+    基于速度的帧计数，避免闪烁
     """
     def __init__(self, cfg):
         self.cfg = cfg
-        self.last_update_ms = 0
+        self.state = {}
+        self.last_labels = {}
 
-        # track_id -> state machine data
-        self.state = {}  # id: {label, cand, cand_count, fall_until_ms}
-        self.last_labels = {}  # 缓存上次的 labels，避免闪烁
+        # 状态机参数
+        self.speed_threshold = 3.0    # 速度阈值（像素/秒）
+        self.walk_enter_count = 2     # 连续2次检测到移动就切换到WALK
+        self.stand_enter_count = 3    # 连续3次检测到静止就切换到STAND
 
     def update(self, tracks, frame_shape, now_ms):
-        cfg = self.cfg
-        H, W = frame_shape[:2]
-
-        # 限频更新（省算力+更稳）
-        if now_ms - self.last_update_ms < int(1000.0 / max(0.1, cfg.posture_update_hz)):
-            return self.last_labels, []  # 返回缓存的 labels，避免闪烁
-        self.last_update_ms = now_ms
-
         labels = {}
         events = []
-
-        alive_ids = set()
+        current_ids = set()
 
         for t in tracks:
             tid = t["id"]
-            alive_ids.add(tid)
-
-            x1, y1, x2, y2 = t["xyxy"]
-            bw = max(1.0, x2 - x1)
-            bh = max(1.0, y2 - y1)
-
-            h_ratio = bh / max(1.0, H)
-            aspect = bh / bw
+            current_ids.add(tid)
             speed = float(t.get("speed", 0.0))
+            age = t.get("age", 0)
+
+            # 丢失的 track 保持上一次的标签
+            if age > 0:
+                labels[tid] = self.state.get(tid, {}).get("label", "STAND")
+                continue
 
             st = self.state.get(tid)
             if st is None:
-                st = {"label": "UNK", "cand": "UNK", "cand_count": 0, "fall_until_ms": 0}
+                st = {
+                    "label": "STAND",
+                    "moving_count": 0,   # 连续移动次数
+                    "stopped_count": 0,  # 连续静止次数
+                }
                 self.state[tid] = st
 
-            # FALL hold：在 hold 时间内强制 FALL?
-            if now_ms < st["fall_until_ms"]:
-                labels[tid] = "FALL?"
+            # 只有当 speed > 0 时才更新状态（跳过无效帧）
+            if speed == 0:
+                labels[tid] = st["label"]
                 continue
 
-            cand = self._classify(cfg, h_ratio, aspect, speed)
+            is_moving = speed > self.speed_threshold
+            current_label = st["label"]
 
-            # 如果是 FALL? 立即触发，并 hold
-            if cand == "FALL?":
-                st["label"] = "FALL?"
-                st["cand"] = "FALL?"
-                st["cand_count"] = cfg.posture_debounce
-                st["fall_until_ms"] = now_ms + int(cfg.fall_hold_seconds * 1000)
+            if is_moving:
+                st["moving_count"] += 1
+                st["stopped_count"] = 0
 
-                events.append({
-                    "type": "FALL_SUSPECT",
-                    "track_id": tid,
-                    "ts_ms": now_ms,
-                    "detail": {"h_ratio": h_ratio, "aspect": aspect, "speed": speed}
-                })
-                labels[tid] = "FALL?"
-                continue
-
-            # debounce：连续 cfg.posture_debounce 次才切换
-            if cand == st["cand"]:
-                st["cand_count"] += 1
+                # STAND -> WALK
+                if current_label == "STAND" and st["moving_count"] >= self.walk_enter_count:
+                    st["label"] = "WALK"
             else:
-                st["cand"] = cand
-                st["cand_count"] = 1
+                st["stopped_count"] += 1
+                st["moving_count"] = 0
 
-            if st["cand_count"] >= cfg.posture_debounce:
-                st["label"] = cand
+                # WALK -> STAND
+                if current_label == "WALK" and st["stopped_count"] >= self.stand_enter_count:
+                    st["label"] = "STAND"
 
             labels[tid] = st["label"]
 
-        # 清理消失的 track 状态
-        dead = [tid for tid in self.state.keys() if tid not in alive_ids]
+        # 清理消失的 track
+        dead = [tid for tid in self.state.keys() if tid not in current_ids]
         for tid in dead:
-            self.state.pop(tid, None)
-            self.last_labels.pop(tid, None)
+            del self.state[tid]
 
-        self.last_labels = labels  # 缓存本次结果
+        self.last_labels = labels
         return labels, events
 
-    def _classify(self, cfg, h_ratio, aspect, speed):
-        # FALL?（更强信号，优先级最高）
-        if aspect <= cfg.fall_aspect_max and speed >= cfg.fall_speed_min:
-            return "FALL?"
-
-        # STAND
-        if h_ratio >= cfg.stand_h_ratio and aspect >= cfg.stand_aspect_min:
-            return "STAND"
-
-        # SIT
-        if (cfg.sit_h_ratio_min <= h_ratio <= cfg.sit_h_ratio_max and
-            cfg.sit_aspect_min <= aspect <= cfg.sit_aspect_max and
-            speed <= cfg.sit_speed_max):
-            return "SIT"
-
-        return "UNK"
+    def get_fall_tracks(self):
+        return {}

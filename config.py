@@ -14,12 +14,12 @@ class JetsonLikeConfig:
     # 这里由 scheduler 用 token bucket 控制
 
     # 人检测阈值
-    conf_thres: float = 0.45     # 提高置信度，减少椅子等误检
+    conf_thres: float = 0.50     # 提高置信度，避免椅子误检
     iou_thres_nms: float = 0.50
 
     # 追踪参数（简易IOU tracker）
     track_iou_match: float = 0.3
-    track_max_age: int = 40      # 允许丢检帧数（越大越"粘"）
+    track_max_age: int = 45      # 允许丢检帧数，适中
     track_min_hits: int = 3      # hits>=3 才计入人数/密度（抑制误报）
 
     # ROI密度网格
@@ -46,11 +46,11 @@ class JetsonLikeConfig:
     narrow_infer_share: float = 0.35  # 推理预算分给Narrow的比例（剩下给Wide）
     # --- posture heuristic (no pose model) ---
     posture_enable: bool = True
-    posture_update_hz: float = 6.0   # 状态更新频率（不必每帧）
+    posture_update_hz: float = 15.0  # 状态更新频率（15Hz = 每66ms更新一次）
     posture_debounce: int = 5        # 连续满足多少次才切换
 
     stand_h_ratio: float = 0.3
-    stand_aspect_min: float = 1.10
+    stand_aspect_min: float = 0.8  # 降低阈值，更容易判定为直立
 
     sit_h_ratio_min: float = 0.12
     sit_h_ratio_max: float = 0.28
@@ -60,7 +60,10 @@ class JetsonLikeConfig:
 
     fall_aspect_max: float = 0.75
     fall_speed_min: float = 80.0
-    fall_hold_seconds: float = 2.0  # FALL? 状态保持时间（防抖）
+    fall_hold_seconds: float = 10.0  # FALL 状态保持时间（10秒，应对检测丢失）
+
+    # WALK 检测阈值
+    walk_speed_min: float = 5.0  # 速度高于此值判定为 WALK
     jetson_like: bool = True
     infer_w: int = 320
     infer_h: int = 320

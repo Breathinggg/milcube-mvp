@@ -394,17 +394,6 @@ def main():
                     x1, y1, x2, y2 = map(int, d["xyxy"])
                     cv2.rectangle(narrow_vis, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-                # 如果你想完全干净，可以注释掉这行
-                cv2.putText(
-                    narrow_vis,
-                    f"narrow evidence: {'YES' if narrow_has_person else 'NO'}",
-                    (10, 25),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7,
-                    (255, 255, 255),
-                    2,
-                )
-
                 final_canvas = side_by_side(canvas, narrow_vis, gap=10)
             else:
                 final_canvas = canvas
