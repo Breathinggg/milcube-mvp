@@ -18,10 +18,12 @@ Real-time multi-camera crowd monitoring system with edge-device simulation.
 - **Edge simulation** - Token Bucket scheduler enforces Jetson-like inference budget (8 Hz)
 - **Dual FOV** - Wide (overview) + Narrow (ROI zoom) software-defined field of view
 - **Real-time tracking** - IOU-based multi-object tracking with trajectory visualization
+- **Crowd density heatmap** - Grid-based density visualization with temporal decay
+- **Congestion analysis** - Real-time congestion rate calculation and alerts
 - **Posture classification** - Speed-based WALK/STAND detection with state machine
 - **Event detection** - Loitering detection with configurable thresholds
 - **Cross-camera Re-ID** - OSNet feature matching for person re-identification
-- **Web dashboard** - MJPEG streaming + live metrics + heatmap overlay
+- **Web dashboard** - MJPEG streaming + live KPI cards + heatmap overlay
 
 ---
 
@@ -198,6 +200,26 @@ Handles uncertainty from low inference rate:
 | 1 (soft) | Mark unconfirmed, don't reduce count |
 | 2 (weighted) | Unconfirmed = 0.5 weight in effective_count |
 | 3 (strict) | Only confirmed detections in confirmed_count |
+
+### Crowd Density Heatmap
+
+Grid-based density analysis with temporal smoothing:
+
+```python
+# 16x9 grid overlay on video frame
+grid_w, grid_h = 16, 9
+
+# Each cell accumulates person count with exponential decay
+decay_per_sec = 0.85
+grid_accum = grid_accum * decay + current_grid
+
+# Congestion rate = cells with density >= 2 / total cells
+congest_rate = (grid_accum >= 2.0).sum() / (grid_w * grid_h)
+```
+
+- **Real-time visualization**: Color-coded overlay (green → yellow → red)
+- **Temporal decay**: Prevents stale hotspots, reflects current crowd flow
+- **Congestion alerts**: Triggers when high-density cells exceed threshold
 
 ---
 
