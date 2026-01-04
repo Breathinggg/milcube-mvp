@@ -225,7 +225,7 @@ congest_rate = (grid_accum >= 2.0).sum() / (grid_w * grid_h)
 
 ## Performance
 
-Tested on: Intel i7-12700H + RTX 3060 Laptop
+Tested on: Intel i5-14600KF + RTX 4070 SUPER
 
 | Mode | Inference Rate | Render FPS | Latency | Notes |
 |------|---------------|------------|---------|-------|
